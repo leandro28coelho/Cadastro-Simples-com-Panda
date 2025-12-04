@@ -1,5 +1,6 @@
 import sqlite3
 import pandas as pd
+from tabulate import tabulate
 
 conexao = sqlite3.connect('banco.db')
 
@@ -7,20 +8,21 @@ class Banco():
     def __int__(self, nome, idade):
         self.nome = nome
         self.idade = idade
-        global conexao
 
     def criacao_Banco(self):
+        global conexao
         conexao.execute(
             '''CREATE TABLE IF NOT EXISTS Cadastro (ID INTEGER PRIMARY KEY AUTOINCREMENT, NOME TEXT, IDADE INTEGER)''')
+        conexao.commit()
+        print('\nTabela criada com êxito !\n')
 
     def get_Valores(self):
+        self.criacao_Banco()
         try:
             dados = pd.read_sql_query("SELECT * FROM Cadastro", conexao)
-            consulta = dados.to_string(index=False)
-            print('\n\tREGISTROS')
-            print(22*'_')
-            print(consulta)
-            print(23 *'_')
+            print("\n=== RELATÓRIO DE CADASTRO ===")
+            print(tabulate(dados, headers='keys', tablefmt='grid', showindex=False))
+
 
         except ValueError:
             print("\nOcorreu um Erro ao Consultar o Banco de Dados!")
@@ -34,12 +36,13 @@ class Banco():
             conexao.execute(f"INSERT INTO Cadastro (nome, idade) VALUES (?, ?)",
                             (str(self.nome), int(self.idade)))
             conexao.commit()
-            print("\nCadastrado com Sucesso")
+            print("Cadastrado com Sucesso")
 
         except ValueError:
             print('\nErro ao salvar no Banco')
 
     def set_update(self, nome, idade, id):
+        self.criacao_Banco()
         try:
             cursor = conexao.cursor()
             cursor.execute(f"UPDATE Cadastro SET NOME = ?, IDADE = ? WHERE ID = ?", (nome, idade, id))
@@ -51,13 +54,9 @@ class Banco():
             print("\nErro ao Atualizar")
 
     def set_excluir(self, id):
-        dados = pd.read_sql_query(f"SELECT * FROM Cadastro WHERE ID = {(id)}", conexao)
-        consulta = dados.to_string(index=False)
-        print(22*'_')
-        print(consulta)
-        print(23*'_')
-        confirmar = input('Deseja Excluir ? Sim/Nao: ')
-        confirmar = confirmar.lower()
+        self.criacao_Banco()
+        self.get_Valores()
+        confirmar = input('\nDeseja Excluir ? Sim/Nao: ').lower()
 
         if confirmar == "sim" or confirmar == "s" or confirmar == "yes":
             conexao.execute(f"DELETE FROM Cadastro WHERE ID = ?", [id])
@@ -69,5 +68,5 @@ class Banco():
 
     def sair(self):
         conexao.close()
-        print('\nAté a proxima !\n')
+        print('\n\nAté a proxima | Conexão DB encerrada\n')
         exit()
